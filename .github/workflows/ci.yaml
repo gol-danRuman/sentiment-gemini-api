@@ -6,6 +6,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -25,10 +28,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install dependencies with resolution
+      - name: Install dependencies
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt --use-deprecated=legacy-resolver || pip install -r requirements.txt -c constraints.txt
+          pip install -r requirements.txt
+
+      - name: Create .env file
+        run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
 
       - name: Run tests
         run: pytest tests/ -v
+
