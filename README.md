@@ -130,3 +130,13 @@ Deploying inference service to AWS Lambda
 `aws cloudformation delete-stack --stack-name <STACK_NAME_ON_CREATION>`
 
 Made by <https://github.com/arthurhenrique/cookiecutter-fastapi/graphs/contributors> with ❤️
+
+
+## Docker:
+docker build -t sentiment-gemini-api .
+docker run -p 8000:8000 sentiment-gemini-api
+docker run --env-file .env -p 8000:8000 sentiment-gemini-api
+
+or 
+
+docker compose up --build
