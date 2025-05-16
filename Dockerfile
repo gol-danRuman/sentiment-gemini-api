@@ -1,21 +1,41 @@
-FROM python:3.11.0
-
-ENV PYTHONUNBUFFERED 1
+FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/data && \
+    chown -R nobody:nogroup /app/data && \
+    chmod 777 /app/data
+
+# Copy project files
 COPY pyproject.toml ./
+COPY app ./app
+COPY .env ./
+
+# Create and activate virtual environment, then install dependencies
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install uv and project dependencies
 RUN pip install --upgrade pip && \
     pip install uv && \
-    uv pip install -e .  # Installs dependencies using uv
+    uv pip install -e .
 
-ARG DEV=false
-RUN if [ "$DEV" = "true" ] ; then uv pip install -e .[dev] ; fi
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV DATABASE_URL=sqlite:////app/data/app.db
 
-COPY ./app/ ./
-COPY ./ml/model/ ./ml/model/
+# Switch to non-root user
+USER nobody
 
-ENV PYTHONPATH "${PYTHONPATH}:/app"
+# Expose port
+EXPOSE 8000
 
-EXPOSE 8080
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

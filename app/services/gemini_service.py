@@ -20,32 +20,44 @@ genai.configure(api_key=str(GEMINI_API_KEY))
 
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash-latest",
-    # generation_config=generation_config,
-    # safety_settings=safety_settings
+    generation_config={
+        "temperature": 0.3,  # Lower temperature for more consistent outputs
+        "top_p": 0.8,
+        "top_k": 40,
+    }
 )
 
 async def get_sentiment_from_gemini(text: str) -> tuple[str, float | None]:
     """Gets sentiment from Gemini model. Returns (sentiment_label, score)."""
-    prompt = f"""Analyze the sentiment of the following text and return the sentiment label (Positive, Negative, or Neutral) and a confidence score if available. 
-    If a confidence score is available, append it after a colon. For example: Positive:0.95. If not, just return the label. 
+    prompt = f"""Analyze the sentiment of the following text and provide a response in this exact format:
+    SENTIMENT: [Positive/Negative/Neutral]
+    SCORE: [0.0 to 1.0]
+
     Text: {text}
-    Sentiment:"""
+    """
     
     try:
         response = await model.generate_content_async(prompt)
         result_text = response.text.strip()
         
-        parts = result_text.split(':')
-        sentiment_label = parts[0].strip()
+        # Parse the response
+        sentiment_label = None
         score = None
-        if len(parts) > 1:
-            try:
-                score = float(parts[1].strip())
-            except ValueError:
-                pass # Score is not a float, ignore
         
+        for line in result_text.split('\n'):
+            line = line.strip()
+            if line.startswith('SENTIMENT:'):
+                sentiment_label = line.replace('SENTIMENT:', '').strip()
+            elif line.startswith('SCORE:'):
+                try:
+                    score = float(line.replace('SCORE:', '').strip())
+                except ValueError:
+                    score = None
+        
+        if not sentiment_label:
+            sentiment_label = "Neutral"  # Default if parsing fails
+            
         return sentiment_label, score
     except Exception as e:
         print(f"Error calling Gemini API: {e}")
-        # Fallback or re-raise as a custom exception
         return "Error", None 

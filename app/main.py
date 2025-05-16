@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.routes.api import router as api_router
@@ -23,7 +25,16 @@ def get_application():
         allow_headers=["*"],
     )
 
+    # Mount static files
+    application.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+    # Include API router
     application.include_router(api_router, prefix=API_PREFIX)
+
+    # Root route to serve the UI
+    @application.get("/")
+    async def read_root():
+        return FileResponse("app/static/index.html")
 
     return application
 
